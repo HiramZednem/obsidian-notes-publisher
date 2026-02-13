@@ -1,7 +1,8 @@
 #!/bin/bash
-# TODO: add a git pull part
+git pull
 
-GIT_FOLDER="/home/hiram/Documents/projects/obsidian-notes-publisher/test-folder"
+GIT_FOLDER="/home/hiram/Documents/projects/obsidian-notes-publisher/test-folde"
+
 LOG_FILE="/home/hiram/Documents/projects/obsidian-notes-publisher/activity.log"
 
 DATE="$(date +'%y-%m-%d %r')"
@@ -9,7 +10,7 @@ DATE="$(date +'%y-%m-%d %r')"
 cd $GIT_FOLDER
 # TODO: add validation in case that doesn't exit....
 
-echo "[$DATE] Running Script" >> "$LOG_FILE"
+echo "[$DATE] Running Obsidian-Notes-Publisher Script" >> "$LOG_FILE"
 
 STATUS_OUTPUT="$(git status)"
 PATTERN='nothing to commit,'
@@ -21,7 +22,7 @@ else
     git add .
     # TODO: add validations
 
-    COMMIT_CMD=$(printf 'git commit -m "%s"' "$DATE")
+    COMMIT_CMD=$(printf 'git commit -m "[BOT] %s"' "$DATE")
     eval $COMMIT_CMD
 
     
