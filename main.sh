@@ -1,6 +1,7 @@
 #!/bin/bash
-# git pull
-validateDirname() {
+source "$HOME/.profile"
+
+require_directory() {
     local PATH_DIRECTORY=$1
     if [[ ! -d "$PATH_DIRECTORY" ]]; then
         echo "$PATH_DIRECTORY doesn't exist"
@@ -8,20 +9,24 @@ validateDirname() {
     fi
 }
 
-GIT_FOLDER="/home/hiram/Documents/projects/obsidian-notes-publisher/test-folder"
-validateDirname $GIT_FOLDER
+GIT_FOLDER=$OBSIDIAN_NOTES_FOLDER
+LOG_FILE=$OBSIDIAN_NOTES_PUBLISHER_LOG_FILE
+LOG_FILE_DIRNAME="$(dirname $LOG_FILE)"
+DATE="$(date +'%y-%m-%d %r')"
+
+echo $GIT_FOLDER
+echo $LOG_FILE
+
+require_directory $GIT_FOLDER
+require_directory $LOG_FILE_DIRNAME
 
 cd $GIT_FOLDER
 
-LOG_FILE="/home/hiram/Documents/projects/obsidian-notes-publisher/activity.log"
-LOG_FILE_DIRNAME="$(dirname $LOG_FILE)"
-validateDirname $LOG_FILE_DIRNAME
+git pull
 
 if [[ ! -f "$LOG_FILE" ]]; then
     touch $LOG_FILE
 fi
-
-DATE="$(date +'%y-%m-%d %r')"
 
 echo "[$DATE] Running Obsidian-Notes-Publisher Script" >> "$LOG_FILE"
 
@@ -36,8 +41,7 @@ fi
 
 git add .
 
-COMMIT_CMD=$(printf 'git commit -m "[BOT] %s"' "$DATE")
-eval $COMMIT_CMD
+git commit -m "[BOT] $DATE"
 
 git push
 
