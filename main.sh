@@ -14,9 +14,6 @@ LOG_FILE=$OBSIDIAN_NOTES_PUBLISHER_LOG_FILE
 LOG_FILE_DIRNAME="$(dirname $LOG_FILE)"
 DATE="$(date +'%y-%m-%d %r')"
 
-echo $GIT_FOLDER
-echo $LOG_FILE
-
 require_directory $GIT_FOLDER
 require_directory $LOG_FILE_DIRNAME
 
