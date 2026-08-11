@@ -45,3 +45,10 @@ export OBSIDIAN_NOTES_FOLDER="$HOME/path-to-your-vault"
 export OBSIDIAN_NOTES_PUBLISHER_LOG_FILE="$HOME/obsidian-publisher.log"
 ```
 
+Notes for hiram in the features
+the obsidian-publisher.service work for linux enviroment since it uses systemd.
+you saved the service on 2 routes
+/home/hiram/.config/systemd/user/obsidian-publisher.service
+/home/hiram/.config/systemd/user/default.target.wants/obsidian-publisher.service
+
+tbh dont remember why
