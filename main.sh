@@ -42,6 +42,66 @@ require_command() {
     fi
 }
 
+cleanup_git_state() {
+    git rebase --abort >/dev/null 2>&1 || true
+    git merge --abort >/dev/null 2>&1 || true
+    git cherry-pick --abort >/dev/null 2>&1 || true
+}
+
+create_local_commit_if_needed() {
+    local STATUS_OUTPUT
+    STATUS_OUTPUT="$(git status --porcelain)"
+
+    if [[ -n "$STATUS_OUTPUT" ]]; then
+        log "Changes detected; creating a local commit before pull"
+        git add -A
+
+        if git diff --cached --quiet; then
+            log "No content changes to commit; repository remains valid"
+            return 0
+        fi
+
+        if ! git commit -m "[BOT] $(date +'%y-%m-%d %r')"; then
+            log "No new commit created; repository is still in a valid state"
+        fi
+    else
+        log "No local changes; nothing to commit before pull"
+    fi
+}
+
+sync_with_remote() {
+    local CURRENT_BRANCH
+
+    CURRENT_BRANCH="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo "main")"
+
+    if [[ -z "$CURRENT_BRANCH" || "$CURRENT_BRANCH" == "HEAD" ]]; then
+        log "Repository is not on a named branch; skipping remote sync"
+        return 0
+    fi
+
+    log "Fetching latest changes from origin/$CURRENT_BRANCH"
+    git fetch origin --prune
+
+    log "Pulling latest changes"
+    if ! git pull --rebase origin "$CURRENT_BRANCH"; then
+        log "Pull with rebase failed; aborting stale rebase and leaving repository unchanged"
+        cleanup_git_state
+        echo "--------------------------------------------------------------" >> "$LOG_FILE"
+        return 1
+    fi
+
+    log "Pushing changes"
+    if ! git push --set-upstream origin "$CURRENT_BRANCH"; then
+        log "Push failed after a successful pull"
+        echo "--------------------------------------------------------------" >> "$LOG_FILE"
+        return 1
+    fi
+
+    log "Commit created and pushed successfully"
+    echo "--------------------------------------------------------------" >> "$LOG_FILE"
+    return 0
+}
+
 # Validate env vars
 if [[ -z "${OBSIDIAN_NOTES_FOLDER:-}" ]]; then
     echo "ERROR: OBSIDIAN_NOTES_FOLDER is not set"
@@ -69,35 +129,11 @@ log "Running Obsidian-Notes-Publisher Script"
 
 cd "$GIT_FOLDER"
 
-STATUS_OUTPUT="$(git status --porcelain)"
+cleanup_git_state
+create_local_commit_if_needed
 
-if [[ -n "$STATUS_OUTPUT" ]]; then
-    log "Changes detected; creating a local commit before pull"
-    git add .
-
-    if ! git commit -m "[BOT] $(date +'%y-%m-%d %r')"; then
-        log "No new commit created; repository is still in a valid state"
-    fi
-else
-    log "No local changes; nothing to commit before pull"
-fi
-
-log "Pulling latest changes"
-if ! git pull --rebase; then
-    log "Conflict detected during pull; aborting rebase and leaving repository unchanged"
-    git rebase --abort >/dev/null 2>&1 || true
-    echo "--------------------------------------------------------------" >> "$LOG_FILE"
+if ! sync_with_remote; then
     exit 0
 fi
-
-log "Pushing changes"
-if ! git push; then
-    log "Push failed after a successful pull"
-    echo "--------------------------------------------------------------" >> "$LOG_FILE"
-    exit 1
-fi
-
-log "Commit created and pushed successfully"
-echo "--------------------------------------------------------------" >> "$LOG_FILE"
 
 exit 0
