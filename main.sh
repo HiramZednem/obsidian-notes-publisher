@@ -69,25 +69,33 @@ log "Running Obsidian-Notes-Publisher Script"
 
 cd "$GIT_FOLDER"
 
-log "Pulling latest changes"
-git pull
-
 STATUS_OUTPUT="$(git status --porcelain)"
 
-if [[ -z "$STATUS_OUTPUT" ]]; then
-    log "Nothing to commit"
+if [[ -n "$STATUS_OUTPUT" ]]; then
+    log "Changes detected; creating a local commit before pull"
+    git add .
+
+    if ! git commit -m "[BOT] $(date +'%y-%m-%d %r')"; then
+        log "No new commit created; repository is still in a valid state"
+    fi
+else
+    log "No local changes; nothing to commit before pull"
+fi
+
+log "Pulling latest changes"
+if ! git pull --rebase; then
+    log "Conflict detected during pull; aborting rebase and leaving repository unchanged"
+    git rebase --abort >/dev/null 2>&1 || true
     echo "--------------------------------------------------------------" >> "$LOG_FILE"
     exit 0
 fi
 
-log "Changes detected"
-
-git add .
-
-git commit -m "[BOT] $(date +'%y-%m-%d %r')"
-
 log "Pushing changes"
-git push
+if ! git push; then
+    log "Push failed after a successful pull"
+    echo "--------------------------------------------------------------" >> "$LOG_FILE"
+    exit 1
+fi
 
 log "Commit created and pushed successfully"
 echo "--------------------------------------------------------------" >> "$LOG_FILE"
